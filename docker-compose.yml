@@ -1,0 +1,19 @@
+version: '3.8'
+services:
+  api:
+    build: .
+    ports:
+      - "8080:8080"
+    env_file: .env
+    volumes:
+      - .:/app
+
+  airflow:
+    image: apache/airflow:2.9.3
+    env_file: .env
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./airflow:/opt/airflow
+    command: airflow webserver --port 8081
+    ports:
+      - "8081:8081"
