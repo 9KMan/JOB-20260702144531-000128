@@ -1,0 +1,18 @@
+Dear Hiring Manager,
+
+I am writing to express my interest in the Full Stack AI Integration, Architecture & Consultation role for your SaaS platform. With extensive experience building RAG pipelines, LangChain agents, and AI-powered features in production environments, I am well-positioned to help you integrate intelligent search, retrieval-augmented generation, and agent orchestration into your existing product.
+
+My background spans the full AI stack:
+
+- I have designed and deployed RAG systems from the ground up—document ingestion pipelines, embedding strategies, vector database architecture (Pinecone and Chroma), and retrieval evaluation frameworks.
+- I have implemented LangChain agents with custom tool schemas, multi-step reasoning chains, and streaming integrations into React/Next.js frontends.
+- I bring both architectural depth and hands-on implementation skills: I can advise on the right approach and also build it.
+
+For your Fintech AI project specifically, I understand the importance of compliance considerations, audit trails, and deterministic behavior in financial applications. I will ask the right questions upfront to ensure the solution is secure, scalable, and aligned with regulatory expectations.
+
+I am available to start immediately and am flexible on engagement structure—whether you need a focused architecture sprint, hands-on implementation, or ongoing consultation.
+
+I would welcome the opportunity to discuss your goals and see how I can add value. Please feel free to reach out to schedule a call.
+
+Best regards,
+Consultant

@@ -1,0 +1,33 @@
+{
+  "name": "postgres-source-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "tasks.max": "1",
+    "database.hostname": "postgres",
+    "database.port": "5432",
+    "database.user": "postgres",
+    "database.password": "postgres",
+    "database.dbname": "inventory",
+    "database.server.name": "postgres",
+    "topic.prefix": "pg",
+    "schema.include.list": "public",
+    "table.include.list": "public.customers,public.orders,public.products",
+    "plugin.name": "pgoutput",
+    "publication.name": "dbz_publication",
+    "slot.name": "debezium_slot",
+    "snapshot.mode": "initial",
+    "snapshot.locking.mode": "none",
+    "time.precision.mode": "connect",
+    "decimal.handling.mode": "double",
+    "interval.handling.mode": "string",
+    "temporal.handling.mode": "connect",
+    "toasted.null.placeholder": "MIIB",
+    "truncate.handling.mode": "toasted",
+    "hstore.handling.mode": "json",
+    "include.unknown.datatypes": "true",
+    "schema.history.internal.kafka.bootstrap.servers": "kafka:9092",
+    "schema.history.internal.kafka.topic": "schema-changes.inventory",
+    "schema.history.internal.producer.bootstrap.servers": "kafka:9092",
+    "schema.history.internal.consumer.bootstrap.servers": "kafka:9092"
+  }
+}

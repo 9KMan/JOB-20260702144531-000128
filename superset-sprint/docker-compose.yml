@@ -1,0 +1,121 @@
+# Apache Superset Multi-Tenant Docker Compose
+# Includes: Superset, PostgreSQL metadata DB, Redis, Prometheus exporter
+
+version: "3.9"
+
+networks:
+  superset-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  superset_home:
+
+services:
+
+  # ── Database ───────────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: superset-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: superset
+      POSTGRES_USER: superset
+      POSTGRES_PASSWORD: superset_password_2024
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - superset-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "superset"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis ──────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: superset-redis
+    restart: unless-stopped
+    command: redis-server --requirepass redis_password_2024
+    volumes:
+      - redis_data:/data
+    networks:
+      - superset-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "redis_password_2024", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Superset App ───────────────────────────────────────────────────────────
+  superset:
+    image: apache/superset:4.0.1
+    container_name: superset-app
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+    environment:
+      SUPERSET_DB_HOST: db
+      SUPERSET_DB_PORT: 5432
+      SUPERSET_DB_USER: superset
+      SUPERSET_DB_PASSWORD: superset_password_2024
+      SUPERSET_DB_NAME: superset
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis_password_2024
+      SECRET_KEY: "your-super-secret-key-change-in-production-32-chars-min"
+      ADMIN_USER: admin
+      ADMIN_PASSWORD: Admin1234!
+      ADMIN_EMAIL: admin@example.com
+      FEATURE_FLAGS: '{"EMBEDDED_SUPERSET": true}'
+    volumes:
+      - superset_home:/app/superset_home
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - superset-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8088/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ── Prometheus Metrics Exporter ────────────────────────────────────────────
+  superset-exporter:
+    image: quay.io/prometheuscommunity/superset-exporter:latest
+    container_name: superset-exporter
+    ports:
+      - "9100:9100"
+    environment:
+      METRICS_ENDPOINT: "http://superset:8088/health"
+      METRICS_INTERVAL: 30
+    networks:
+      - superset-network
+    depends_on:
+      - superset
+
+  # ── PostgreSQL for tenant data ─────────────────────────────────────────────
+  tenant-db:
+    image: postgres:16-alpine
+    container_name: tenant-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tenants
+      POSTGRES_USER: tenantadmin
+      POSTGRES_PASSWORD: tenant_password_2024
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./scripts/init-tenant-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - superset-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  superset_home:

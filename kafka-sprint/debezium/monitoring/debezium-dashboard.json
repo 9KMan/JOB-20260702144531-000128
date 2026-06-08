@@ -1,0 +1,81 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "title": "Debezium CDC Dashboard",
+  "uid": "debezium-cdc",
+  "version": 1,
+  "panels": [
+    {
+      "title": "Connector Status",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "kafka_connect_connector_state{job=\"kafka-connect\"}",
+          "legendFormat": "{{connector}}"
+        }
+      ]
+    },
+    {
+      "title": "Connector Task Count",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "targets": [
+        {
+          "expr": "kafka_connect_connector_tasks_total{job=\"kafka-connect\"}",
+          "legendFormat": "{{connector}}"
+        }
+      ]
+    },
+    {
+      "title": "Offset Lag",
+      "type": "graph",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "targets": [
+        {
+          "expr": "kafka_connect_connect_worker_metrics_task_offset_lag_consumer{job=\"kafka-connect\"}",
+          "legendFormat": "{{task}}"
+        }
+      ]
+    },
+    {
+      "title": "Consumer Poll Rate",
+      "type": "graph",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "targets": [
+        {
+          "expr": "rate(kafka_connect_connect_worker_metrics_task_poll_rate_consumer{job=\"kafka-connect\"}[5m])",
+          "legendFormat": "{{task}}"
+        }
+      ]
+    },
+    {
+      "title": "Source Connector Messages",
+      "type": "graph",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "targets": [
+        {
+          "expr": "rate(kafka_connect_connect_worker_metrics_messages_consumed_total{job=\"kafka-connect\"}[5m])",
+          "legendFormat": "{{connector}}"
+        }
+      ]
+    },
+    {
+      "title": "Schema History Events",
+      "type": "graph",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "targets": [
+        {
+          "expr": "rate(debezium_schema_history_events_total{job=\"kafka-connect\"}[5m])",
+          "legendFormat": "{{database}}"
+        }
+      ]
+    }
+  ],
+  "refresh": "10s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

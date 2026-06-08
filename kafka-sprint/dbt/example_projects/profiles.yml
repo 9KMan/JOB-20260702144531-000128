@@ -1,0 +1,47 @@
+# dbt profiles.yml - Database connection configurations
+# NOTE: In production, use environment variables for passwords/secrets
+# Example: password: "{{ env_var('DBT_POSTGRES_PASSWORD') }}"
+
+ecommerce_analytics:
+  target: dev
+  
+  outputs:
+    # Development environment - local PostgreSQL
+    dev:
+      type: postgres
+      host: localhost
+      port: 5432
+      user: dbt_user
+      password: dbt_password
+      dbname: ecommerce
+      schema: dbt_dev
+      threads: 4
+      keepalives_idle: 0
+      connect_timeout: 10
+      search_path: dbt_dev, public
+      
+    # CI environment - for GitHub Actions/testing
+    ci:
+      type: postgres
+      host: localhost
+      port: 5432
+      user: dbt_ci_user
+      password: dbt_ci_password
+      dbname: ecommerce_ci
+      schema: dbt_ci
+      threads: 2
+      connect_timeout: 10
+      
+    # Production environment - remote PostgreSQL
+    prod:
+      type: postgres
+      host: production-db.example.com
+      port: 5432
+      user: prod_user
+      password: "{{ env_var('DBT_PROD_PASSWORD') }}"
+      dbname: ecommerce
+      schema: dbt_prod
+      threads: 8
+      keepalives_idle: 0
+      connect_timeout: 30
+      search_path: dbt_prod, public

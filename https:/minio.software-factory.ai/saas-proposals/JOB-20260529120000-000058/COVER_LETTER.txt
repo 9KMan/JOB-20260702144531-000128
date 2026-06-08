@@ -1,0 +1,44 @@
+===== COVER LETTER =====
+
+Dear Client,
+
+I am writing to apply for your Backend Developer for SaaS Platform role. I specialise in building production-grade multi-tenant backend systems with FastAPI, PostgreSQL (with row-level security), WebSockets, Docker, and Apache Kafka.
+
+## What I Understand You Need
+
+You are building (or enhancing) a SaaS platform that requires:
+- **REST APIs** for core business logic
+- **WebSockets** for real-time features
+- **Multi-tenant architecture** so clients are fully isolated
+- **Authentication** (JWT + secure password storage)
+- **Kafka / NATS** for event-driven inter-service communication
+- **Docker-based deployment** for cloud scalability
+
+## How I Will Approach This
+
+1. **Architecture first** — I will define the full system SPEC.md before writing any code. You review and approve before I start coding.
+2. **Milestone-based delivery** — Three milestones, each delivering working, tested code. You pay as each milestone is accepted.
+3. **Strong isolation** — PostgreSQL row-level security enforces tenant boundaries at the DB engine level, not just in application code.
+4. **Production-ready from day one** — async Python (SQLAlchemy 2.0, aiokafka), Docker multi-stage build, Alembic migrations, pytest with >80% coverage.
+5. **Clear communication** — async updates with progress metrics, blocker alerts, and realistic estimates. No surprises.
+
+## My Availability
+
+- **Start:** Immediately
+- **Timezone:** GMT+7 (flexible for your schedule)
+- **Communication:** Chat, status updates every 2 days
+
+## Next Steps
+
+1. You review and approve the SPEC.md I will prepare
+2. I start Milestone 1 — Foundation + Auth API
+3. We iterate together via a shared kanban board
+
+I am happy to answer any screening questions or share relevant past work samples.
+
+Best regards,
+Mongkolpoj Phanutaecha
+Principal Data Platform Architect | AI-Augmented Engineering Factory
+Bangkok, Thailand (GMT+7) | Open to Remote Contracts
+
+===== COVER LETTER =====

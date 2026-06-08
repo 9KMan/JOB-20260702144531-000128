@@ -1,0 +1,54 @@
+# dbt Project Configuration
+# This file configures how dbt operates for this project
+
+name: ecommerce_analytics
+version: 1.0.0
+
+# This setting tells dbt how to find the profile (target database connection)
+# The profiles.yml file contains the actual connection credentials
+profile: ecommerce_analytics
+
+# These configurations specify how dbt looks for and processes model files
+models:
+  ecommerce_analytics:
+    # Example project structure
+    example:
+      # Staging models - first transformation layer
+      staging:
+        +materialized: view
+        +schema: staging
+      # Intermediate models - cross-source transformations  
+      intermediate:
+        +materialized: view
+        +schema: intermediate
+      # Mart models - business tables for BI/analytics
+      marts:
+        +materialized: table
+        +schema: marts
+
+# Configure snapshots
+snapshots:
+  ecommerce_analytics:
+    +target_schema: snapshots
+    +strategy: timestamp
+    +updated_at: updated_at
+
+# Configure seeds (CSV files)
+seeds:
+  ecommerce_analytics:
+    +schema: seeds
+    +quote_columns: false
+
+# Test configuration
+tests:
+  ecommerce_analytics:
+    +store_failures: true
+    +severity: warn
+
+# On-run-start hooks - runs before any model execution
+on-run-start:
+  - "{{ log('dbt run started at ' ~ run_started_at, info=True) }}"
+
+# On-run-end hooks - runs after all model execution
+on-run-end:
+  - "{{ log('dbt run completed at ' ~ run_started_at, info=True) }}"

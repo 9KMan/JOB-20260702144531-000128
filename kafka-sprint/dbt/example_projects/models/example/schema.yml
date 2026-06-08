@@ -1,0 +1,415 @@
+version: 2
+
+# =============================================================================
+# Sources - Raw tables loaded from external systems (ETL/ELT pipelines)
+# =============================================================================
+sources:
+  - name: ecom
+    description: E-commerce source data from external systems
+    database: ecommerce
+    schema: public
+    
+    freshness:
+      # Warn if data is older than 1 hour, error if older than 24 hours
+      warn_after: {count: 1, period: hour}
+      error_after: {count: 24, period: hour}
+    
+    tables:
+      - name: orders
+        description: Raw orders table from Shopify/ecommerce platform
+        identifier: orders  # Use if table name differs from source name
+        
+        columns:
+          - name: order_id
+            description: Primary key for orders
+            data_type: character varying
+          - name: customer_id
+            description: Foreign key to customers
+            data_type: character varying
+          - name: order_date
+            description: When the order was placed
+            data_type: timestamp
+          - name: status
+            description: Order status (pending, processing, shipped, delivered, cancelled)
+            data_type: character varying
+          - name: total_amount
+            description: Total order amount in USD
+            data_type: numeric
+          - name: shipping_address
+            description: Customer shipping address
+            data_type: character varying
+          - name: updated_at
+            description: Last update timestamp
+            data_type: timestamp
+          - name: loaded_at
+            description: When this record was loaded to warehouse
+            data_type: timestamp
+        
+        loaded_at_field: loaded_at
+        
+      - name: customers
+        description: Raw customers table
+        identifier: customers
+        
+        columns:
+          - name: customer_id
+            description: Primary key for customers
+            data_type: character varying
+          - name: email
+            description: Customer email address
+            data_type: character varying
+          - name: first_name
+            description: Customer first name
+            data_type: character varying
+          - name: last_name
+            description: Customer last name
+            data_type: character varying
+          - name: customer_tier
+            description: Customer loyalty tier (bronze, silver, gold, platinum)
+            data_type: character varying
+          - name: created_at
+            description: When customer account was created
+            data_type: timestamp
+          - name: updated_at
+            description: Last update timestamp
+            data_type: timestamp
+          - name: loaded_at
+            description: When this record was loaded to warehouse
+            data_type: timestamp
+        
+        loaded_at_field: loaded_at
+        
+      - name: order_items
+        description: Raw order line items table
+        identifier: order_items
+        
+        columns:
+          - name: order_item_id
+            description: Primary key for order items
+            data_type: character varying
+          - name: order_id
+            description: Foreign key to orders
+            data_type: character varying
+          - name: product_id
+            description: Foreign key to products
+            data_type: character varying
+          - name: quantity
+            description: Quantity ordered
+            data_type: integer
+          - name: unit_price
+            description: Price per unit in USD
+            data_type: numeric
+          - name: loaded_at
+            description: When this record was loaded to warehouse
+            data_type: timestamp
+        
+        loaded_at_field: loaded_at
+        
+      - name: products
+        description: Raw products catalog
+        identifier: products
+        
+        columns:
+          - name: product_id
+            description: Primary key for products
+            data_type: character varying
+          - name: product_name
+            description: Product display name
+            data_type: character varying
+          - name: category
+            description: Product category
+            data_type: character varying
+          - name: brand
+            description: Product brand
+            data_type: character varying
+          - name: cost
+            description: Product cost (for margin calculations)
+            data_type: numeric
+          - name: loaded_at
+            description: When this record was loaded to warehouse
+            data_type: timestamp
+        
+        loaded_at_field: loaded_at
+
+# =============================================================================
+# Models - SQL transformations built with dbt
+# =============================================================================
+models:
+  - name: stg_orders
+    description: Staged orders with cleaned column names and types
+    config:
+      materialized: view
+      schema: staging
+    
+    columns:
+      - name: order_id
+        description: Primary key
+        tests:
+          - unique
+          - not_null
+      
+      - name: customer_id
+        description: Foreign key to customers
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_customers')
+              field: customer_id
+      
+      - name: order_date
+        description: Order date
+        tests:
+          - not_null
+      
+      - name: status
+        description: Order status
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['pending', 'processing', 'shipped', 'delivered', 'cancelled']
+      
+      - name: total_amount
+        description: Total order amount
+        tests:
+          - not_null
+      
+      - name: shipping_address
+        description: Shipping address
+      
+      - name: updated_at
+        description: Last update timestamp
+
+  - name: stg_customers
+    description: Staged customers with cleaned data
+    config:
+      materialized: view
+      schema: staging
+    
+    columns:
+      - name: customer_id
+        description: Primary key
+        tests:
+          - unique
+          - not_null
+      
+      - name: email
+        description: Email address
+        tests:
+          - unique
+          - not_null
+      
+      - name: first_name
+        description: First name
+      
+      - name: last_name
+        description: Last name
+      
+      - name: full_name
+        description: Concatenated full name
+      
+      - name: customer_tier
+        description: Loyalty tier
+        tests:
+          - accepted_values:
+              values: ['bronze', 'silver', 'gold', 'platinum']
+      
+      - name: created_at
+        description: Account creation date
+
+  - name: stg_order_items
+    description: Staged order items with product details joined
+    config:
+      materialized: view
+      schema: staging
+    
+    columns:
+      - name: order_item_id
+        description: Primary key
+        tests:
+          - unique
+          - not_null
+      
+      - name: order_id
+        description: Foreign key to orders
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_orders')
+              field: order_id
+      
+      - name: product_id
+        description: Foreign key to products
+        tests:
+          - not_null
+      
+      - name: product_name
+        description: Product name at time of order
+      
+      - name: category
+        description: Product category
+      
+      - name: quantity
+        description: Quantity ordered
+        tests:
+          - not_null
+      
+      - name: unit_price
+        description: Unit price at time of order
+      
+      - name: line_total
+        description: quantity * unit_price
+
+  - name: int_order_items
+    description: Intermediate order items with enriched calculations
+    config:
+      materialized: view
+      schema: intermediate
+    
+    columns:
+      - name: order_item_id
+        tests:
+          - unique
+          - not_null
+      
+      - name: order_id
+        tests:
+          - not_null
+      
+      - name: product_id
+        tests:
+          - not_null
+      
+      - name: product_name
+      - name: category
+      - name: quantity
+      - name: unit_price
+      - name: line_total
+      - name: cost
+      - name: gross_margin
+        description: line_total - (quantity * cost)
+
+  - name: fct_orders
+    description: Fact table for orders - one row per order with customer details
+    config:
+      materialized: incremental
+      schema: marts
+      unique_key: order_id
+      incremental_strategy: merge
+    
+    columns:
+      - name: order_id
+        description: Primary key
+        tests:
+          - unique
+          - not_null
+      
+      - name: customer_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_customers')
+              field: customer_id
+      
+      - name: customer_name
+        description: Denormalized customer name
+      
+      - name: customer_tier
+        description: Customer tier at time of order
+      
+      - name: order_date
+        description: Date of order
+        tests:
+          - not_null
+      
+      - name: status
+        tests:
+          - not_null
+      
+      - name: total_amount
+        description: Total order amount
+        tests:
+          - not_null
+      
+      - name: item_count
+        description: Number of line items
+      
+      - name: total_margin
+        description: Gross margin across all items
+      
+      - name: updated_at
+
+  - name: dim_customers
+    description: Dimension table for customers
+    config:
+      materialized: table
+      schema: marts
+    
+    columns:
+      - name: customer_id
+        description: Primary key
+        tests:
+          - unique
+          - not_null
+      
+      - name: email
+        tests:
+          - unique
+          - not_null
+      
+      - name: first_name
+      - name: last_name
+      - name: full_name
+      
+      - name: customer_tier
+        tests:
+          - accepted_values:
+              values: ['bronze', 'silver', 'gold', 'platinum']
+      
+      - name: created_at
+      - name: first_order_date
+        description: Date of first order
+      - name: last_order_date
+        description: Date of most recent order
+      - name: total_orders
+        description: Total number of orders
+      - name: total_spent
+        description: Lifetime value in USD
+
+# =============================================================================
+# Exposures - Downstream BI tool connections
+# =============================================================================
+exposures:
+  - name: orders_dashboard
+    description: Executive dashboard showing order metrics
+    type: dashboard
+    maturity: high
+    owner:
+      name: Analytics Team
+      email: analytics@company.com
+    depends_on:
+      - ref('fct_orders')
+      - ref('dim_customers')
+    meta:
+      tool: metabase
+      dashboard_url: https://analytics.company.com/dashboard/orders
+
+  - name: customer360
+    description: Customer 360 view for customer success team
+    type: dashboard
+    maturity: high
+    owner:
+      name: Customer Success
+      email: customers@company.com
+    depends_on:
+      - ref('dim_customers')
+      - ref('fct_orders')
+
+  - name: revenue_model
+    description: Revenue calculations for finance team
+    type: ml_model
+    maturity: medium
+    owner:
+      name: Finance Team
+      email: finance@company.com
+    depends_on:
+      - ref('fct_orders')

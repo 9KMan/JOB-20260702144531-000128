@@ -1,0 +1,72 @@
+{
+  "\$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "OrderEvent",
+  "description": "Schema for order lifecycle events",
+  "required": ["eventId", "eventType", "orderId", "timestamp"],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique event identifier"
+    },
+    "eventType": {
+      "type": "string",
+      "enum": ["ORDER_CREATED", "ORDER_UPDATED", "ORDER_CANCELLED", "ORDER_SHIPPED", "ORDER_DELIVERED"],
+      "description": "Type of order event"
+    },
+    "orderId": {
+      "type": "string",
+      "description": "Order identifier"
+    },
+    "customerId": {
+      "type": "string",
+      "description": "Customer identifier"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Event timestamp"
+    },
+    "totalAmount": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Order total in cents"
+    },
+    "currency": {
+      "type": "string",
+      "default": "USD",
+      "description": "ISO 4217 currency code"
+    },
+    "items": {
+      "type": "array",
+      "description": "Order line items",
+      "items": {
+        "type": "object",
+        "required": ["sku", "quantity", "unitPrice"],
+        "properties": {
+          "sku": { "type": "string" },
+          "name": { "type": "string" },
+          "quantity": { "type": "integer", "minimum": 1 },
+          "unitPrice": { "type": "number", "minimum": 0 }
+        }
+      }
+    },
+    "shippingAddress": {
+      "type": "object",
+      "description": "Shipping address",
+      "properties": {
+        "street": { "type": "string" },
+        "city": { "type": "string" },
+        "state": { "type": "string" },
+        "postalCode": { "type": "string" },
+        "country": { "type": "string" }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional event metadata",
+      "additionalProperties": true
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "name": "mysql-source-connector-masked",
+  "config": {
+    "connector.class": "io.debezium.connector.mysql.MySqlConnector",
+    "tasks.max": "1",
+    "database.hostname": "mysql",
+    "database.port": "3306",
+    "database.user": "debezium",
+    "database.password": "dbz123",
+    "database.server.id": "2",
+    "topic.prefix": "mysql-masked",
+    "database.include.list": "inventory",
+    "table.include.list": "inventory.customers",
+    "schema.history.internal.kafka.bootstrap.servers": "kafka:9092",
+    "schema.history.internal.kafka.topic": "schema-changes.inventory-masked",
+    "include.schema.changes": "false",
+    "snapshot.mode": "initial",
+    "binlog.format": "ROW",
+    "binlog.row.image": "FULL",
+    "gtid.source.enabled": "true",
+    "time.precision.mode": "connect",
+    "decimal.handling.mode": "double",
+    "transforms": "maskEmail",
+    "transforms.maskEmail.type": "org.apache.kafka.connect.transforms.MaskField$Value",
+    "transforms.maskEmail.fields": "email,phone",
+    "transforms.maskEmail.replacement": "****",
+    "transforms.maskEmail.operation": "replace"
+  }
+}

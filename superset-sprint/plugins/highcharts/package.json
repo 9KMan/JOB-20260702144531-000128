@@ -1,0 +1,19 @@
+{
+  "name": "@superset superset-highcharts",
+  "version": "1.0.0",
+  "description": "Highcharts visualization plugin for Apache Superset",
+  "main": "index.js",
+  "scripts": {
+    "build": "webpack --mode production",
+    "dev": "webpack --mode development --watch"
+  },
+  "dependencies": {
+    "highcharts": "^11.4.0",
+    "highcharts-react-official": "^3.2.1"
+  },
+  "devDependencies": {
+    "@superset/viz-plugins": "file:../superset-plugins",
+    "webpack": "^5.90.0",
+    "webpack-cli": "^5.1.0"
+  }
+}

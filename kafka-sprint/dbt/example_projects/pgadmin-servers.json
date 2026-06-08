@@ -1,0 +1,13 @@
+{
+    "Servers": {
+        "1": {
+            "Name": "dbt PostgreSQL",
+            "Group": "dbt Development",
+            "Host": "postgres",
+            "Port": 5432,
+            "MaintenanceDB": "ecommerce",
+            "Username": "dbt_user",
+            "SSLMode": "prefer"
+        }
+    }
+}

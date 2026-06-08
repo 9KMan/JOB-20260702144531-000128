@@ -1,0 +1,67 @@
+# Docker Compose for dbt PostgreSQL Development Environment
+# Usage: docker-compose up -d
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database - Primary data warehouse
+  postgres:
+    image: postgres:15-alpine
+    container_name: dbt_postgres
+    environment:
+      POSTGRES_DB: ecommerce
+      POSTGRES_USER: dbt_user
+      POSTGRES_PASSWORD: dbt_password
+      POSTGRES_HOST_AUTH_METHOD: md5
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Initialize with sample data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dbt_user -d ecommerce"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # pgAdmin - PostgreSQL web management interface
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: dbt_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@dbt.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_SERVER_JSON_FILE: /pgadmin4/servers.json
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./pgadmin-servers.json:/pgadmin4/servers.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # dbt Runner - Container with dbt installed for running transformations
+  dbt_runner:
+    image: dbt/dbt:1.7-postgres
+    container_name: dbt_runner
+    volumes:
+      - ./example_projects:/usr/app/dbt
+    working_dir: /usr/app/dbt
+    profiles_dir: /usr/app/dbt
+    command: sleep infinity  # Keep container running for exec access
+    environment:
+      DBT_TARGET: dev
+      DBT_PROD_PASSWORD: dbt_password
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+networks:
+  default:
+    name: dbt_network
+
+volumes:
+  postgres_data:
+  pgadmin_data:
