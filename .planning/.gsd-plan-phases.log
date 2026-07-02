@@ -1,3 +1,4 @@
-[17:00:35] Starting gsd-plan-phases for JOB-20260702144531-000128
-[17:00:35] Worker dir: /home/deploy/squad/build-worker/JOB-20260702144531-000128
-[17:00:35] ERROR: SPEC.md not found at /home/deploy/squad/build-worker/JOB-20260702144531-000128/SPEC.md
+[17:12:02] Starting gsd-plan-phases for JOB-20260702144531-000128
+[17:12:02] Worker dir: /home/deploy/squad/build-worker/JOB-20260702144531-000128
+[17:12:02] Tech stack: Python, PostgreSQL
+[17:12:02] Model: bulk=['MiniMax-M2.7-highspeed', 'MiniMax-M2.7', 'Deepseek-v4-flash', 'MiniMax-M3'], planner=['MiniMax-M2.7-highspeed', 'MiniMax-M2.7', 'Deepseek-v4-flash', 'MiniMax-M3'] (FAST MODE)
