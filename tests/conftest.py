@@ -1,10 +1,31 @@
-"""Pytest fixtures for Composio + LangGraph connector tests."""
+"""Shared pytest fixtures.
+
+Two families of fixtures live here:
+
+1. **Composio connector fixtures** (``mock_env``, ``mock_composio_client``,
+   ``sample_ga4_response``, ``sample_realtime_response``, ``sample_oauth_token``):
+   used by ``tests/connectors/test_ga4.py`` and friends.
+
+2. **FastAPI app fixtures** (``app``, ``client``): used by ``tests/test_api.py``
+   to drive the ingest/health/status routes through ``httpx.AsyncClient``.
+
+The FastAPI fixtures are kept minimal — they do NOT mutate global state, so
+running ``tests/test_api.py`` does not contaminate ``tests/connectors/`` env
+mocks (those tests patch env vars themselves via the ``mock_env`` fixture).
+"""
+from __future__ import annotations
 
 import os
-from typing import Any, Dict
+from typing import Any, AsyncIterator, Dict
 from unittest.mock import MagicMock, patch
 
 import pytest
+from httpx import ASGITransport, AsyncClient
+
+
+# ---------------------------------------------------------------------------
+# Composio + connector fixtures (used by tests/connectors/test_ga4.py)
+# ---------------------------------------------------------------------------
 
 
 @pytest.fixture
@@ -17,7 +38,7 @@ def mock_env():
         "GOOGLE_REDIRECT_URI": "http://localhost:8080/oauth/callback",
         "GOOGLE_GA4_PROPERTY_ID": "123456789",
         "HUBSPOT_API_KEY": "test_hubspot_api_key",
-        "SLACK_BOT_TOKEN": "xoxb-test-slack-bot-token",
+        "SLACK_BOT_TOKEN": "«redacted:xox…»",
         "SEMRUSH_API_KEY": "test_semrush_api_key",
         "POSTHOG_API_KEY": "test_posthog_api_key",
         "POSTHOG_PROJECT_ID": "test_project_id",
@@ -121,3 +142,28 @@ def sample_oauth_token() -> Dict[str, Any]:
         "expires_in": 3600,
         "scope": "https://www.googleapis.com/auth/analytics.readonly",
     }
+
+
+# ---------------------------------------------------------------------------
+# FastAPI app fixtures (used by tests/test_api.py)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def app():
+    """FastAPI app instance for direct endpoint testing.
+
+    Importing lazily so that ``tests/connectors/`` (which only need Composio
+    fixtures) don't pay the FastAPI import cost.
+    """
+    from src.api.main import app as fastapi_app
+
+    return fastapi_app
+
+
+@pytest.fixture
+async def client(app) -> AsyncIterator[AsyncClient]:
+    """Async httpx client wired to the FastAPI app via ASGITransport."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
+        yield ac

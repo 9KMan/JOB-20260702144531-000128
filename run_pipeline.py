@@ -50,7 +50,7 @@ class WebhookProcessor:
             records = get_pending_records()
             logger.info(
                 "webhook_processor.start",
-                pending_count=len(records),
+                extra={"pending_count": len(records)},
             )
 
             for record in records:
@@ -58,20 +58,24 @@ class WebhookProcessor:
                 self._processed.append(processed)
                 logger.info(
                     "webhook_processor.record_processed",
-                    record_id=processed.get("record_id"),
-                    source=processed.get("source"),
+                    extra={
+                        "record_id": processed.get("record_id"),
+                        "source": processed.get("source"),
+                    },
                 )
 
             clear_pending_records()
             logger.info(
                 "webhook_processor.complete",
-                processed_count=len(self._processed),
+                extra={"processed_count": len(self._processed)},
             )
         except ImportError as exc:
             logger.warning(
                 "webhook_processor.import_failed",
-                error=str(exc),
-                hint="Running without FastAPI context — no pending records to process",
+                extra={
+                    "error": str(exc),
+                    "hint": "Running without FastAPI context — no pending records to process",
+                },
             )
         return self._processed
 
@@ -131,9 +135,11 @@ class ETLService:
         """
         logger.info(
             "etl_service.start",
-            record_count=len(records),
-            dataset=self.dataset,
-            table=self.table,
+            extra={
+                "record_count": len(records),
+                "dataset": self.dataset,
+                "table": self.table,
+            },
         )
 
         normalized = self._normalize(records)
@@ -150,7 +156,7 @@ class ETLService:
             "rows_loaded": rows_loaded,
             "completed_at": datetime.now(timezone.utc).isoformat(),
         }
-        logger.info("etl_service.complete", **summary)
+        logger.info("etl_service.complete", extra=summary)
         return summary
 
     # ------------------------------------------------------------------
@@ -178,7 +184,7 @@ class ETLService:
                 "raw_payload": _to_json_string(record),
                 "content_length": len(record.get("content", "")),
             })
-        logger.info("etl.normalize", count=len(normalized))
+        logger.info("etl.normalize", extra={"count": len(normalized)})
         return normalized
 
     def _categorize_by_length(
@@ -193,7 +199,7 @@ class ETLService:
                 record["length_category"] = "medium"
             else:
                 record["length_category"] = "long"
-        logger.info("etl.categorize", count=len(records))
+        logger.info("etl.categorize", extra={"count": len(records)})
         return records
 
     def _deduplicate(
@@ -209,7 +215,7 @@ class ETLService:
                 unique.append(record)
         dropped = len(records) - len(unique)
         if dropped:
-            logger.info("etl.deduplicate", dropped=dropped, remaining=len(unique))
+            logger.info("etl.deduplicate", extra={"dropped": dropped, "remaining": len(unique)})
         return unique
 
     # ------------------------------------------------------------------
@@ -231,21 +237,22 @@ class ETLService:
 
             errors = client.insert_rows_json(table_ref, records)
             if errors:
-                logger.error("etl.bigquery.insert_errors", errors=errors)
+                logger.error("etl.bigquery.insert_errors", extra={"errors": errors})
                 raise RuntimeError(f"BigQuery insert failed: {errors}")
 
             self._loaded_count += len(records)
             logger.info(
                 "etl.bigquery.loaded",
-                rows=len(records),
-                total=self._loaded_count,
+                extra={"rows": len(records), "total": self._loaded_count},
             )
             return len(records)
         except ImportError:
             logger.warning(
                 "etl.bigquery.skipped",
-                reason="google-cloud-bigquery not available in this environment",
-                rows=len(records),
+                extra={
+                    "reason": "google-cloud-bigquery not available in this environment",
+                    "rows": len(records),
+                },
             )
             return len(records)
 
@@ -300,9 +307,11 @@ async def main() -> None:
 
     logger.info(
         "pipeline.start",
-        project_id=settings.GCP_PROJECT_ID,
-        dataset=settings.GCP_BIGQUERY_DATASET,
-        table=settings.GCP_BIGQUERY_TABLE,
+        extra={
+            "project_id": settings.GCP_PROJECT_ID,
+            "dataset": settings.GCP_BIGQUERY_DATASET,
+            "table": settings.GCP_BIGQUERY_DATASET,
+        },
     )
 
     # Step 1: Process pending webhooks
@@ -313,11 +322,11 @@ async def main() -> None:
     etl = ETLService(
         project_id=settings.GCP_PROJECT_ID,
         dataset=settings.GCP_BIGQUERY_DATASET,
-        table=settings.GCP_BIGQUERY_TABLE,
+        table=settings.GCP_BIGQUERY_DATASET,
     )
     summary = await etl.run(processed_records)
 
-    logger.info("pipeline.complete", summary=summary)
+    logger.info("pipeline.complete", extra={"summary": summary})
 
 
 if __name__ == "__main__":

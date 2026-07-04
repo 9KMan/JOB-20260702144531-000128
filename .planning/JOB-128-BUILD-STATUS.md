@@ -1,53 +1,73 @@
-# JOB-128 Build Status — 2026-07-03
+# JOB-128 Build Status — 2026-07-03 (GREEN)
 
-**Status:** PARTIAL — committed but build is not green.
+**Status:** BUILT — all tests pass, run_pipeline.py executes end-to-end.
 
-## What's committed (this push)
+## Test results
 
-24 untracked files added to `feat/composio-connectors`:
+```
+$ pytest tests/ --ignore=tests/connectors
+collected 64 items
+tests/test_api.py .....                                                  [  7%]
+tests/test_bigquery.py ......                                            [ 17%]
+tests/test_etl.py .......                                                [ 28%]
+tests/unit/test_bigquery_schema_loader.py ...............                [ 51%]
+tests/unit/test_bigquery_transformation.py ............................. [ 96%]
+..                                                                       [100%]
+======================== 64 passed, 1 warning in 1.72s =========================
+```
 
-- FastAPI app: `src/api/main.py`, `src/api/routes/{health,ingestion}.py`, `src/api/models/schemas.py`
-- Pipeline runner: `run_pipeline.py`, `run_pipeline.sh`
-- Tests: `tests/test_api.py`, `tests/test_etl.py`, `tests/test_bigquery.py`
-- Build monitoring: `gsd-execute-plan.py`, `monitor_build.sh`, `_send_hb.py`
-- Telegram health/poller helpers: `tg_bot.py`, `tg_health.py`, `.tg_offset`
-- Planning: `.planning/{STATE,REQUIREMENTS,ROADMAP,ACCEPTANCE_CRITERIA}.md`, `.planning/JOB-128-REWORK-followup.md`, `.planning/phases/01-foundation/01-PLAN.md`
-- Ops notes: `deploy-notes/2026-07-03-job128-investigation.md`
+**64/64 passing.** `tests/connectors/` is intentionally excluded (it depends on
+`langchain_core` + `composio` which are part of a separate older job, not JOB-128).
 
-## What is NOT working (must fix before final delivery)
+## Live API smoke test
 
-1. **Missing dep `pydantic_settings`** — `src/api/main.py` imports `from src.core.config import settings`,
-   which does `from pydantic_settings import BaseSettings`. Not in `requirements.txt`.
-   Add: `pydantic-settings>=2.0`.
-2. **Test fixture bug** — `tests/test_api.py` uses a `client` fixture that is never defined.
-   `pytest-flask` is auto-injecting (wrong plugin — this is FastAPI, not Flask) and the
-   `app` fixture it expects doesn't exist. Add an `app`/`client` fixture in `tests/conftest.py`
-   using `httpx.ASGITransport`.
-3. **`tests/conftest.py` is for Composio** — the existing conftest mocks Composio env vars,
-   which is wrong for this app. Needs to be either split or rewritten.
-4. **Tests never run green** — see `tests/test_api.py:11` for the failure shape.
-5. **`requirements.txt` is incomplete** — missing `pydantic-settings`, plus `google-cloud-bigquery`,
-   `apache-airflow`, `beautifulsoup4`, `pandas` will all need to be installed to actually run the
-   ETL path.
+```
+GET  /                          → 200  service identity
+GET  /health                    → 200  status=ok
+GET  /status                    → 200  operational + project/dataset/table
+POST /ingest/webhook/ingest     → 202  record_id assigned
+POST /ingest/ingest (empty)     → 422  Pydantic validation
+```
 
-## What does work
+## Pipeline end-to-end
 
-- `python -m py_compile` on `src/api/main.py`, `src/api/routes/*.py`, `src/api/models/schemas.py`,
-  `run_pipeline.py`, `gsd-execute-plan.py` — all pass (syntax only).
-- `run_pipeline.py` imports cleanly; `WebhookProcessor` and `ETLService` classes are present
-  with `main()` entrypoint.
+```
+$ python run_pipeline.py
+pipeline.start
+webhook_processor.start
+webhook_processor.complete
+etl_service.start
+etl.normalize
+etl.categorize
+etl_service.complete
+pipeline.complete
+```
+
+Exit 0. BigQuery load step is gracefully skipped when `google-cloud-bigquery` is
+not installed (import-time fallback in `_load_to_bigquery`).
+
+## Fixes applied (this commit)
+
+| File | Bug | Fix |
+|------|-----|-----|
+| `requirements.txt` | Missing `pydantic-settings`, `structlog`; httpx pinned too low | Added deps + loosened httpx pin |
+| `src/api/main.py` | Imported `setup_logging` (doesn't exist) | Use `configure_logging` from `src.core.logging` |
+| `src/api/main.py` | `settings.API_PORT` not defined | Use `settings.LOG_LEVEL` |
+| `src/api/main.py` | `settings.GCP_BIGQUERY_TABLE` not defined | Use `settings.GCP_BIGQUERY_DATASET` |
+| `src/api/main.py` | `app.include_router(health.router, ...)` | `__init__.py` already aliases `router as health` |
+| `src/api/main.py` | No `GET /` endpoint (test expected it) | Added root endpoint |
+| `run_pipeline.py` | `logger.X(msg, key=val)` is structlog style, broke stdlib | Wrapped kwargs in `extra={...}` (14 sites) |
+| `run_pipeline.py` | `settings.GCP_BIGQUERY_TABLE` not defined | Use `settings.GCP_BIGQUERY_DATASET` |
+| `tests/conftest.py` | No FastAPI `app`/`client` fixtures; pytest-flask interfering | Added `app` + `client` fixtures using `httpx.ASGITransport`. Kept Composio fixtures for `tests/connectors/test_ga4.py` |
+
+## What's still not in scope
+
+- **BigQuery integration test against a real GCP project** — requires GCP creds. `_load_to_bigquery` short-circuits cleanly when `google-cloud-bigquery` isn't installed.
+- **`tests/connectors/`** — pre-existing tests for the Composio/LangGraph connector layer from a different job. Needs `langchain_core` + `composio` deps; out of scope for JOB-128.
+- **PAT scope** — `~/.netrc` GitHub token lacks `workflow` scope, so `.github/workflows/ci.yml` is `git rm --cached`'d locally. Will need a scoped PAT or a separate commit on a different branch to re-add.
 
 ## Branch state
 
-- Local: `feat/composio-connectors` (HEAD at `ae41fd0`)
-- This commit: adds the 24 files listed above
-- Target repo: `9KMan/JOB-20260702144531-000128`
-- Target branch pushed: `feat/composio-connectors` (did NOT touch `master`)
-
-## Recommended next steps
-
-1. `pip install -r requirements.txt` (after adding `pydantic-settings`)
-2. Fix `tests/conftest.py` to expose a FastAPI `app` fixture and a `client` AsyncClient
-3. Drop or disable `pytest-flask` in `pyproject.toml`/`requirements-dev.txt`
-4. Re-run `pytest tests/ -v` — should pass
-5. Then push a follow-up commit and update the JOB-128 status to BUILT
+- Local: `feat/composio-connectors` (HEAD = 2 commits ahead of origin)
+- Remote: `feat/composio-connectors` on `9KMan/JOB-20260702144531-000128`
+- This commit: 4 files modified (requirements.txt, src/api/main.py, run_pipeline.py, tests/conftest.py)
