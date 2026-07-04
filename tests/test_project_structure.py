@@ -123,7 +123,9 @@ def test_required_file_exists(path: str) -> None:
 
 
 def test_no_ascii_art_in_markdown_files() -> None:
-    """Top-level .md files must be free of Unicode box-drawing characters.
+    """Top-level .md files must be free of Unicode box-drawing characters —
+    except for the "What's in this repo" section of README.md, which uses
+    ASCII art (per user preference: project-structure section only).
 
     Only scans files at the repo root and in `diagrams/` /
     `docs/` / `scripts/` — does not descend into ``.planning/``
@@ -131,6 +133,9 @@ def test_no_ascii_art_in_markdown_files() -> None:
     """
     scan_roots = [REPO_ROOT, REPO_ROOT / "diagrams"]
     allowed_dirs = {"diagrams", "docs", "scripts"}
+    # The README's "What's in this repo" section is allowed to use ASCII
+    # art (user preference for project-structure visualisation).
+    allowed_files = {REPO_ROOT / "README.md"}
     offenders: list[str] = []
     for root in scan_roots:
         if not root.exists():
@@ -140,6 +145,9 @@ def test_no_ascii_art_in_markdown_files() -> None:
             parts = rel.parts
             # Only top-level .md files OR .md inside allowed subdirs.
             if len(parts) > 1 and parts[0] not in allowed_dirs:
+                continue
+            # Skip the explicitly-allowed files (project-structure ASCII).
+            if md in allowed_files:
                 continue
             try:
                 text = md.read_text(encoding="utf-8")
