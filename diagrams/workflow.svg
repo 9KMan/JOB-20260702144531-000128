@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 360" role="img" aria-label="End-to-end ingestion to review to audit workflow">
+  <title>Ingestion → Review → Audit Workflow</title>
+  <desc>Style C (data pipeline / ETL): deep blue stages, orange highlights, white canvas.</desc>
+
+  <!-- Canvas -->
+  <rect x="0" y="0" width="1100" height="360" fill="#FFFFFF"/>
+
+  <!-- Title -->
+  <text x="40" y="40" font-family="Helvetica, Arial, sans-serif" font-size="22" font-weight="700" fill="#1E3A8A">Workflow — Ingestion to Audit</text>
+  <text x="40" y="62" font-family="Helvetica, Arial, sans-serif" font-size="13" fill="#475569">Source → Ingest → Suggest → Review → Audit (with confidence-based auto-approval).</text>
+
+  <!-- Stage nodes -->
+  <g font-family="Helvetica, Arial, sans-serif">
+    <!-- Stage 1: Source -->
+    <rect x="40" y="120" width="160" height="120" rx="10" fill="#FFFFFF" stroke="#1E3A8A" stroke-width="2"/>
+    <text x="120" y="148" text-anchor="middle" font-size="14" font-weight="700" fill="#1E3A8A">1 · Source</text>
+    <text x="120" y="170" text-anchor="middle" font-size="11" fill="#334155">CSV uploads</text>
+    <text x="120" y="186" text-anchor="middle" font-size="11" fill="#334155">REST endpoints</text>
+    <text x="120" y="202" text-anchor="middle" font-size="11" fill="#334155">DB replicas</text>
+    <text x="120" y="224" text-anchor="middle" font-size="11" fill="#475569">push rows</text>
+
+    <!-- Stage 2: Ingest -->
+    <rect x="240" y="120" width="160" height="120" rx="10" fill="#FFFFFF" stroke="#1E3A8A" stroke-width="2"/>
+    <text x="320" y="148" text-anchor="middle" font-size="14" font-weight="700" fill="#1E3A8A">2 · Ingest</text>
+    <text x="320" y="170" text-anchor="middle" font-size="11" fill="#334155">normalise_row()</text>
+    <text x="320" y="186" text-anchor="middle" font-size="11" fill="#334155">SHA-256 hash</text>
+    <text x="320" y="202" text-anchor="middle" font-size="11" fill="#334155">dedupe by hash</text>
+    <text x="320" y="224" text-anchor="middle" font-size="11" fill="#475569">idempotent</text>
+
+    <!-- Stage 3: Suggest (highlight) -->
+    <rect x="440" y="120" width="160" height="120" rx="10" fill="#FFFFFF" stroke="#F97316" stroke-width="3"/>
+    <text x="520" y="148" text-anchor="middle" font-size="14" font-weight="700" fill="#C2410C">3 · Suggest</text>
+    <text x="520" y="170" text-anchor="middle" font-size="11" fill="#334155">active template</text>
+    <text x="520" y="186" text-anchor="middle" font-size="11" fill="#334155">score confidence</text>
+    <text x="520" y="202" text-anchor="middle" font-size="11" fill="#334155">create suggestion</text>
+    <text x="520" y="224" text-anchor="middle" font-size="11" fill="#C2410C" font-weight="700">≥ 0.85 → auto</text>
+
+    <!-- Stage 4: Review (highlight) -->
+    <rect x="640" y="120" width="160" height="120" rx="10" fill="#FFFFFF" stroke="#F97316" stroke-width="3"/>
+    <text x="720" y="148" text-anchor="middle" font-size="14" font-weight="700" fill="#C2410C">4 · Review</text>
+    <text x="720" y="170" text-anchor="middle" font-size="11" fill="#334155">approve / reject</text>
+    <text x="720" y="186" text-anchor="middle" font-size="11" fill="#334155">edit payload</text>
+    <text x="720" y="202" text-anchor="middle" font-size="11" fill="#334155">RBAC gated</text>
+    <text x="720" y="224" text-anchor="middle" font-size="11" fill="#C2410C" font-weight="700">HITL</text>
+
+    <!-- Stage 5: Audit -->
+    <rect x="840" y="120" width="160" height="120" rx="10" fill="#FFFFFF" stroke="#1E3A8A" stroke-width="2"/>
+    <text x="920" y="148" text-anchor="middle" font-size="14" font-weight="700" fill="#1E3A8A">5 · Audit</text>
+    <text x="920" y="170" text-anchor="middle" font-size="11" fill="#334155">append-only row</text>
+    <text x="920" y="186" text-anchor="middle" font-size="11" fill="#334155">before / after</text>
+    <text x="920" y="202" text-anchor="middle" font-size="11" fill="#334155">DB trigger blocks</text>
+    <text x="920" y="218" text-anchor="middle" font-size="11" fill="#334155">UPDATE/DELETE</text>
+    <text x="920" y="234" text-anchor="middle" font-size="11" fill="#475569">immutable</text>
+  </g>
+
+  <!-- Connectors -->
+  <g stroke="#1E3A8A" stroke-width="2" fill="none" marker-end="url(#arrowBlue)">
+    <line x1="200" y1="180" x2="240" y2="180"/>
+    <line x1="400" y1="180" x2="440" y2="180"/>
+    <line x1="600" y1="180" x2="640" y2="180"/>
+    <line x1="800" y1="180" x2="840" y2="180"/>
+  </g>
+
+  <!-- Confidence auto-approve arrow (orange, looping) -->
+  <g stroke="#F97316" stroke-width="2" fill="none" stroke-dasharray="6 4" marker-end="url(#arrowOrange)">
+    <path d="M 520 240 Q 520 290, 920 290 Q 940 290, 940 240"/>
+  </g>
+  <text x="730" y="285" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#C2410C" font-weight="700">high-confidence bypasses Review</text>
+
+  <!-- Legend -->
+  <g font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#475569">
+    <rect x="40" y="320" width="14" height="14" fill="#FFFFFF" stroke="#1E3A8A" stroke-width="2"/>
+    <text x="60" y="332">pipeline stage</text>
+    <rect x="180" y="320" width="14" height="14" fill="#FFFFFF" stroke="#F97316" stroke-width="3"/>
+    <text x="200" y="332">decision / human-in-the-loop</text>
+  </g>
+
+  <defs>
+    <marker id="arrowBlue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1E3A8A"/>
+    </marker>
+    <marker id="arrowOrange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#F97316"/>
+    </marker>
+  </defs>
+</svg>
